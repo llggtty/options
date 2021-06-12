@@ -64,11 +64,27 @@ def portfolio_pnl(pricing_data: pd.DataFrame) -> float:
     return final_pnl
 
 
+
 def realised_volatility(p: pd.Series) ->float:
     """
     :param p: price series
     :return: annualised realised volatility
     """
+    t = len(p)
+    def gamma_pnl(ds, gamma):
+        returns = ds / ds.iloc[0]
+        d = returns.diff().iloc[1:]
+        d = d.apply(lambda v: gamma * 0.5 * v**2)
+        return d.cumsum()
+
+    def pnl_to_vol(pnl, gamma, t):
+        return math.sqrt(2*pnl/(gamma * t/TRADING_DAYS))
+
+
+def analytical_realised_volatility(p: pd.Series) ->float:
+    """
+    :param p: price series
+    :return: annualised realised volatility
+    """
     r = np.log(p.shift(1)/p).dropna()
-    t = len(r)
-    return r.std() * math.sqrt(t)
+    return math.sqrt(sum(r**2) * len(r)/TRADING_DAYS)
