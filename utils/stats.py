@@ -1,5 +1,5 @@
 import math
-from options.common.config import *
+from options.common.config import SQRT_TWO, SQRT_TWO_PI
 
 
 def norm_cdf(x: float) -> float:
