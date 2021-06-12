@@ -1,7 +1,7 @@
-import numpy as np
+#!/usr/bin/venv python3.7
 import math
 from enum import Enum
-from options.common.config import *
+from options.utils.stats import norm_cdf, norm_pdf
 
 class Option(Enum):
     Put = 1
@@ -25,7 +25,10 @@ class BlackScholesModel(object):
         elif tte > 0:
             discount_factor = math.exp(-r * tte)
             d1, d2 = cls.d1_d2(tte, strike, spot, sigma, r)
-
+            if kind == Option.Call:
+                return max(norm_cdf(d1) * spot - norm_cdf(d2) * strike * discount_factor, 0)
+            else:
+                return max(norm_cdf(-d2) * strike * discount_factor - norm_cdf(-d1) * spot, 0)
         else:
             raise ValueError
 
@@ -34,4 +37,21 @@ class BlackScholesModel(object):
         d1 = math.log(spot/strike) + (r+0.5*sigma**2) * tte/(sigma*math.sqrt(tte))
         d2 = d1 - sigma*math.sqrt(tte)
         return d1, d2
+
+    @classmethod
+    def delta(cls, kind: Option, tte: float, strike: int, spot: float, sigma: float, r: float):
+        if kind not in [Option.Put, Option.Call]:
+            raise NotImplementedError
+
+        d1, _ = cls.d1_d2(tte, strike, spot, sigma, r)
+
+        if kind == Option.Call:
+            return norm_cdf(d1)
+        else:
+            return norm_cdf(d1) - 1
+
+    @classmethod
+    def gamma(cls, tte: float, strike: int, spot: float, sigma: float, r: float):
+        d1, _ = cls.d1_d2(tte, strike, spot, sigma, r)
+        return norm_pdf(d1) / (spot * sigma * math.sqrt(tte))
 
