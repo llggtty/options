@@ -43,13 +43,21 @@ class BlackScholesModel(object):
     def delta(cls, kind: Option, tte: float, strike: int, spot: float, volatility: float, r: float):
         if kind not in [Option.Put, Option.Call]:
             raise NotImplementedError
+        if tte == 0:
+            if kind == Option.Call:
+                return 1 if spot >= strike else 0
+            else:
+                return -1 if spot <strike else 0
 
-        d1, _ = cls.d1_d2(tte, strike, spot, volatility, r)
+        elif tte > 0:
+            d1, _ = cls.d1_d2(tte, strike, spot, volatility, r)
 
-        if kind == Option.Call:
-            return norm_cdf(d1)
+            if kind == Option.Call:
+                return norm_cdf(d1)
+            else:
+                return norm_cdf(d1) - 1
         else:
-            return norm_cdf(d1) - 1
+            raise ValueError
 
     @classmethod
     def gamma(cls, tte: float, strike: int, spot: float, volatility: float, r: float):

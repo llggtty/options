@@ -20,7 +20,7 @@ def generate_base_prices(p0: float, annual_return: float, volatility: float, tra
     :param trading_days: int
     :return: series of daily price
     """
-
+    np.random.seed(100)
     sigma = volatility / math.sqrt(TRADING_DAYS)
     mu = annual_return / TRADING_DAYS
     # return from day 1
@@ -37,7 +37,7 @@ def generate_pricing_data(p0: float, annual_return: float, volatility: float, da
     """
     arr_base = generate_base_prices(p0, annual_return, volatility, days_to_expiry)
     # including day 0
-    arr_tte = [(days_to_expiry + 1 - x) / (days_to_expiry + 1) for x in np.arange(0, days_to_expiry+1)]
+    arr_tte = [(days_to_expiry - x) / days_to_expiry for x in np.arange(0, days_to_expiry+1)]
     pricing_data = pd.DataFrame(data={'base_price': arr_base, 'tte': arr_tte})
     pricing_data['option_price'] = pricing_data.apply(
         lambda row: bs.value(Option.Call, row.tte, strike, row.base_price, annual_volatility, r), axis=1)
@@ -53,8 +53,8 @@ def portfolio_pnl(pricing_data: pd.DataFrame) -> float:
     """
     last_row = len(pricing_data) - 1
     # hedge can only be integer
-    pricing_data['hedge'] = -(pricing_data['delta'] * contract_multiplier).astype(int)
-    pricing_data['hedge_volume'] = pricing_data['hedge'].shift(1) - pricing_data['hedge']
+    pricing_data['hedge'] = -pricing_data['delta'] * contract_multiplier
+    pricing_data['hedge_volume'] = pricing_data['hedge'] - pricing_data['hedge'].shift(1)
     # the first trade is the hedge amount
     pricing_data.loc[0, 'hedge_volume'] = pricing_data.loc[0, 'hedge']
 
@@ -81,7 +81,7 @@ def realised_volatility(p: pd.Series) ->float:
         return math.sqrt(2*pnl/(gamma * t/TRADING_DAYS))
 
 
-def analytical_realised_volatility(p: pd.Series) ->float:
+def analytical_realised_volatility(p: pd.Series) -> float:
     """
     :param p: price series
     :return: annualised realised volatility

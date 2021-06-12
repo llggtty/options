@@ -16,7 +16,7 @@ logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s')
 
 if __name__ == '__main__':
     pricing_data = generate_pricing_data(initial_price, annual_return, annual_volatility, days_to_expiry)
-    rvol = realised_volatility(pricing_data['base_price'])
+    rvol = analytical_realised_volatility(pricing_data['base_price'])
     pnl = portfolio_pnl(pricing_data)
 
     print(pnl, rvol, annual_volatility)
