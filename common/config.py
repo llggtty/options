@@ -12,13 +12,14 @@ INVERSE_MAD_ANNUALIZED = math.sqrt(math.pi/2) * math.sqrt(TRADING_DAYS)
 """
 
 
-tte = 1
+
 initial_price = 100
 strike = 100
 annual_return = 0.1
 annual_volatility = 0.3
 rate = 0.05
-days_to_expiry = math.floor(tte * TRADING_DAYS)
+days_to_expiry = 256
+tte = days_to_expiry/TRADING_DAYS
 contract_multiplier = 100
 num_stocks = 4
 

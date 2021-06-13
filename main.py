@@ -34,25 +34,31 @@ def question_1():
 
 # question 2
 def question_2():
-    pricing_data = generate_pricing_data(initial_price, annual_return, annual_volatility, days_to_expiry, strike, r=0, seed=200)
-    annual_rvol = annual_realised_volatility(pricing_data['base_price'])
+    kind = Option.Call
 
-    pricing_data['rvol'] = realised_volatility(pricing_data['base_price'])
-    pricing_data.loc[0, 'rvol'] = annual_volatility
-    # if realised vol > implied vol, portfolio pnl > 0 (0 interest rate). For illustration, set rounding to False.
+    pricing_data = generate_pricing_data(initial_price, annual_return, annual_volatility, days_to_expiry, strike, r=0, seed=200)
+    # delta hedge based on our expected vol
     pnl, hedge = portfolio_pnl(pricing_data, rounding=False)
-    log.info(f"End of day delta hedge volume: \n {hedge['hedge_volume'].values}")
-    log.info(f"The daily hedge portfolio final pnl : {pnl:,.4f}, realised vol {annual_rvol:.4f}, "
+    rvol = annual_realised_volatility(pricing_data['base_price'])
+    log.info(f"The daily hedge portfolio final pnl : {pnl:,.4f}, realised vol {rvol:.4f}, "
              f"implied vol of the option {annual_volatility:4f}.")
 
-    # recalculate delta and hedge pnl with realised vol
+    # numeric delta
+    log.info(f"use numeric delta to hedge.")
+    # let's start with only one day left, to be exactly pnl flat, the hedge volume V0 = -(P1 - P0)/ (S1-S0) * 100.
+    numeric_delta = (pricing_data.shift(1)['option_price'] - pricing_data['option_price'])/(pricing_data.shift(1)['base_price'] - pricing_data['base_price'])
+    pricing_data.loc[0:days_to_expiry-1, 'delta'] = numeric_delta.dropna().reset_index(drop=True)
 
-    pricing_data['delta0'] = pricing_data.apply(
-        lambda row: bs.delta(Option.Call, row.tte, strike, row.base_price, annual_volatility, r=0), axis=1)
-    pricing_data['delta'] = pricing_data.apply(
-        lambda row: bs.delta(Option.Call, row.tte, strike, row.base_price, row.rvol, r=0), axis=1)
-    pnl_rvol, hedge_rvol = portfolio_pnl(pricing_data, rounding=False)
-    log.info(f"The daily hedge portfolio using delta calculated with realised vol final pnl : {pnl_rvol:,.4f}.")
+    pnl, hedge = portfolio_pnl(pricing_data, rounding=False)
+    log.info(f"The daily hedge portfolio final pnl : {pnl:,.4f}.")
+
+    # use the realised return to calculate realised vol
+    log.info(f"use delta calculated by realised vol to hedge.")
+
+    # compare with numeric delta
+    pricing_data['delta'] = pricing_data.apply(lambda row: bs.delta(kind, row.tte, strike, row.base_price, rvol, r=0), axis=1)
+    pnl, hedge = portfolio_pnl(pricing_data, rounding=False)
+    log.info(f"The daily hedge portfolio final pnl : {pnl:,.4f}.")
 
 
 # question 3

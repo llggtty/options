@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pandas as pd
 from typing import Optional
-from options.common.config import TRADING_DAYS, contract_multiplier, INVERSE_MAD_ANNUALIZED
+from options.common.config import TRADING_DAYS, contract_multiplier
 from options.core.bs_model import BlackScholesModel as bs, Option
 
 import logging
@@ -42,7 +42,7 @@ def generate_pricing_data(p0: float, annual_return: float, volatility: float, da
     """
     arr_base = generate_base_prices(p0, annual_return, volatility, days_to_expiry, seed)
     # including day 0
-    arr_tte = [(days_to_expiry - x) / days_to_expiry for x in np.arange(0, days_to_expiry+1)]
+    arr_tte = [(days_to_expiry - x) / TRADING_DAYS for x in np.arange(0, days_to_expiry+1)]
     pricing_data = pd.DataFrame(data={'base_price': arr_base, 'tte': arr_tte})
     pricing_data['option_price'] = pricing_data.apply(
         lambda row: bs.value(Option.Call, row.tte, strike, row.base_price, volatility, r), axis=1)
@@ -63,7 +63,7 @@ def portfolio_pnl(pricing_data: pd.DataFrame, rounding: bool) -> tuple[float, pd
         # hedge can only be integer
         pricing_data['hedge'] = pricing_data['hedge'].round()
     pricing_data['hedge_volume'] = pricing_data['hedge'] - pricing_data['hedge'].shift(1)
-    # the first trade is the hedge amount
+    # the first trade is the full delta amount
     pricing_data.loc[0, 'hedge_volume'] = pricing_data.loc[0, 'hedge']
 
     pricing_data['hedge_pnl'] = pricing_data['hedge_volume'] * (pricing_data.loc[last_row, 'base_price']-pricing_data['base_price'])
@@ -88,9 +88,12 @@ def annual_realised_volatility(p: pd.Series) -> float:
 def realised_volatility(p: pd.Series) -> pd.Series:
     """
     :param p: price series
-    :return: realised vol on each return
+    :return: realised vol on each day based on past return
     """
-    ret = np.log(p.shift(1)/p).dropna()
+    ret = ((p.shift(1) - p)/p).dropna()
+
+    # ret = np.log(p.shift(1)/p).dropna()
+    # rolling time window
     ret = ret.to_frame()
     ret['rvol'] = 0
     def f(ret):
@@ -98,3 +101,4 @@ def realised_volatility(p: pd.Series) -> pd.Series:
     for i, row in ret.iterrows():
         ret.loc[i, 'rvol'] = f(ret.loc[0:i, 'base_price'])
     return ret['rvol']
+
