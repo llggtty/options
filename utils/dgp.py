@@ -78,5 +78,5 @@ def realised_volatility(p: pd.Series) -> float:
     :param p: price series
     :return: annualised realised volatility
     """
-    r = np.log(p.shift(1)/p).dropna()
-    return math.sqrt(sum(r**2) * len(r)/TRADING_DAYS)
+    ret = np.log(p.shift(1)/p).dropna()
+    return math.sqrt(sum(ret**2) * len(ret)/TRADING_DAYS)

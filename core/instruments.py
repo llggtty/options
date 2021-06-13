@@ -50,19 +50,3 @@ def implied_forward(p1: Instrument, c1: Instrument, p2: Instrument, c2: Instrume
     discount_factor = implied_discount_factor(p1, c1, p2, c2)
     spot = c1.price - p1.price + c1.strike * discount_factor
     return spot / discount_factor
-
-
-if __name__ == '__main__':
-    k1 = 100
-    k2 = 120
-    c1 = Instrument(Option.Call, tte, k1, initial_price, annual_volatility, r)
-    c2 = Instrument(Option.Call, tte, k2, initial_price, annual_volatility, r)
-    p1 = Instrument(Option.Put, tte, k1, initial_price, annual_volatility, r)
-    p2 = Instrument(Option.Put, tte, k2, initial_price, annual_volatility, r)
-
-    for i in [c1, c2, p1, p2]:
-        i.price = i.calculate_price()
-
-    expected_forward = initial_price*math.exp(r*tte)
-
-    print(f"forward : {expected_forward}, implied forward from options {implied_forward(p1, c1, p2, c2)}")
