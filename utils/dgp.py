@@ -1,12 +1,15 @@
 #!/usr/bin/venv python3.7
+import math
 import numpy as np
 import pandas as pd
 from typing import Optional
-from options.common.config import *
+from options.common.config import TRADING_DAYS, contract_multiplier
 from options.core.bs_model import BlackScholesModel as bs, Option
-pd.options.display.float_format = '{:,.3f}'.format
-pd.set_option('display.max_columns', 1000)
-pd.set_option('display.max_rows', 2000)
+
+import logging
+logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', filename='main.log')
+log = logging.getLogger(__name__)
+log.setLevel(logging.WARNING)
 
 
 def generate_base_prices(p0: float, annual_return: float, volatility: float, trading_days: int,
@@ -31,9 +34,10 @@ def generate_base_prices(p0: float, annual_return: float, volatility: float, tra
     return np.insert(prices, [0], p0)
 
 
-def generate_pricing_data(p0: float, annual_return: float, volatility: float, days_to_expiry: int, seed: Optional[int] = None) -> pd.DataFrame:
+def generate_pricing_data(p0: float, annual_return: float, volatility: float, days_to_expiry: int, strike: int,
+                          r: float, seed: Optional[int] = None) -> pd.DataFrame:
     """
-    generate option pricing data based on configured pricing inputs
+    generate time series of option pricing data based on configured pricing inputs
     :return: dataframe of base price, tte and the corresponding option price, delta
     """
     arr_base = generate_base_prices(p0, annual_return, volatility, days_to_expiry, seed)
@@ -41,9 +45,9 @@ def generate_pricing_data(p0: float, annual_return: float, volatility: float, da
     arr_tte = [(days_to_expiry - x) / days_to_expiry for x in np.arange(0, days_to_expiry+1)]
     pricing_data = pd.DataFrame(data={'base_price': arr_base, 'tte': arr_tte})
     pricing_data['option_price'] = pricing_data.apply(
-        lambda row: bs.value(Option.Call, row.tte, strike, row.base_price, annual_volatility, r), axis=1)
+        lambda row: bs.value(Option.Call, row.tte, strike, row.base_price, volatility, r), axis=1)
     pricing_data['delta'] = pricing_data.apply(
-        lambda row: bs.delta(Option.Call, row.tte, strike, row.base_price, annual_volatility, r), axis=1)
+        lambda row: bs.delta(Option.Call, row.tte, strike, row.base_price, volatility, r), axis=1)
     return pricing_data
 
 

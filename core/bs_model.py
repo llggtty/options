@@ -2,6 +2,10 @@
 import math
 from enum import Enum
 from options.utils.stats import norm_cdf, norm_pdf
+import logging
+logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', filename='main.log')
+log = logging.getLogger(__name__)
+log.setLevel(logging.WARNING)
 
 
 class Option(Enum):
