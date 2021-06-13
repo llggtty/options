@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pandas as pd
 from typing import Optional
-from options.common.config import TRADING_DAYS, contract_multiplier
+from options.common.config import TRADING_DAYS, contract_multiplier, INVERSE_MAD_ANNUALIZED
 from options.core.bs_model import BlackScholesModel as bs, Option
 
 import logging
@@ -73,10 +73,28 @@ def portfolio_pnl(pricing_data: pd.DataFrame, rounding: bool) -> tuple[float, pd
     return hedge_pnl + option_pnl, pricing_data
 
 
-def realised_volatility(p: pd.Series) -> float:
+def annual_realised_volatility(p: pd.Series) -> float:
     """
     :param p: price series
     :return: annualised realised volatility
     """
     ret = np.log(p.shift(1)/p).dropna()
-    return math.sqrt(sum(ret**2) * len(ret)/TRADING_DAYS)
+    #
+    # r_mean = ret.mean()
+    # math.sqrt(sum((ret - r_mean) ** 2) * TRADING_DAYS / (len(ret) - 1))
+    return math.sqrt(sum(ret ** 2) * TRADING_DAYS / len(ret))
+
+
+def realised_volatility(p: pd.Series) -> pd.Series:
+    """
+    :param p: price series
+    :return: realised vol on each return
+    """
+    ret = np.log(p.shift(1)/p).dropna()
+    ret = ret.to_frame()
+    ret['rvol'] = 0
+    def f(ret):
+        return math.sqrt(sum(ret ** 2) * TRADING_DAYS / len(ret))
+    for i, row in ret.iterrows():
+        ret.loc[i, 'rvol'] = f(ret.loc[0:i, 'base_price'])
+    return ret['rvol']

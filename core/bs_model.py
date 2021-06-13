@@ -51,7 +51,7 @@ class BlackScholesModel(object):
             if kind == Option.Call:
                 return 1 if spot >= strike else 0
             else:
-                return -1 if spot <strike else 0
+                return -1 if spot < strike else 0
 
         elif tte > 0:
             d1, _ = cls.d1_d2(tte, strike, spot, volatility, r)

@@ -2,15 +2,17 @@
 import math
 import pandas as pd
 from options.core.bs_model import Option, BlackScholesModel as bs
-from options.utils.dgp import generate_base_prices, generate_pricing_data, realised_volatility, portfolio_pnl
+from options.utils.dgp import generate_base_prices, generate_pricing_data, realised_volatility, annual_realised_volatility, portfolio_pnl
 from options.core.instruments import Instrument, implied_forward
 from options.common.config import initial_price, annual_return, annual_volatility, days_to_expiry, tte, strike, rate
 import logging
 logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s')
 
 pd.options.display.float_format = '{:,.3f}'.format
-pd.set_option('display.max_columns', 1000)
-pd.set_option('display.max_rows', 2000)
+pd.set_option('display.max_columns', 100)
+pd.set_option('display.max_rows', 100)
+desired_width = 320
+pd.set_option('display.width', desired_width)
 
 
 # set up logger
@@ -32,17 +34,23 @@ def question_1():
 
 # question 2
 def question_2():
-    pricing_data = generate_pricing_data(initial_price, annual_return, annual_volatility, days_to_expiry, strike, r=0)
-    rvol = realised_volatility(pricing_data['base_price'])
+    pricing_data = generate_pricing_data(initial_price, annual_return, annual_volatility, days_to_expiry, strike, r=0, seed=200)
+    annual_rvol = annual_realised_volatility(pricing_data['base_price'])
+
+    pricing_data['rvol'] = realised_volatility(pricing_data['base_price'])
+    pricing_data.loc[0, 'rvol'] = annual_volatility
     # if realised vol > implied vol, portfolio pnl > 0 (0 interest rate). For illustration, set rounding to False.
     pnl, hedge = portfolio_pnl(pricing_data, rounding=False)
     log.info(f"End of day delta hedge volume: \n {hedge['hedge_volume'].values}")
-    log.info(f"The daily hedge portfolio final pnl : {pnl:,.4f}, realised vol {rvol:.4f}, "
+    log.info(f"The daily hedge portfolio final pnl : {pnl:,.4f}, realised vol {annual_rvol:.4f}, "
              f"implied vol of the option {annual_volatility:4f}.")
 
     # recalculate delta and hedge pnl with realised vol
+
+    pricing_data['delta0'] = pricing_data.apply(
+        lambda row: bs.delta(Option.Call, row.tte, strike, row.base_price, annual_volatility, r=0), axis=1)
     pricing_data['delta'] = pricing_data.apply(
-        lambda row: bs.delta(Option.Call, row.tte, strike, row.base_price, rvol, r=0), axis=1)
+        lambda row: bs.delta(Option.Call, row.tte, strike, row.base_price, row.rvol, r=0), axis=1)
     pnl_rvol, hedge_rvol = portfolio_pnl(pricing_data, rounding=False)
     log.info(f"The daily hedge portfolio using delta calculated with realised vol final pnl : {pnl_rvol:,.4f}.")
 

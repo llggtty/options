@@ -1,14 +1,16 @@
 #!/usr/bin/venv python3.7
 import math
+TRADING_DAYS = 256
 
 SQRT_TWO = math.sqrt(2)
 
 SQRT_TWO_PI = math.sqrt(2*math.pi)
 
+INVERSE_MAD_ANNUALIZED = math.sqrt(math.pi/2) * math.sqrt(TRADING_DAYS)
 """
 
 """
-TRADING_DAYS = 256
+
 
 tte = 1
 initial_price = 100
